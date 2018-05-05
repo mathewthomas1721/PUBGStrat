@@ -1,0 +1,131 @@
+INTRODUCTION
+
+The code consists of two main parts, the analytic and the heat map generator.
+
+The analytic is written in Scala, to be run using Spark on the NYU HPC cluster.
+
+The heat map generator is a python script that needs to be run on another machine with the required packages installed.
+I could not install the required packages on the NYU HPC without sudo privileges, so I ran it on my local machine.
+
+THE DATASET
+
+The original dataset is stored in 2 files on HDFS at the locations :
+
+hdfs:/user/mt3443/BDAD/ProjectData/agg.csv
+hdfs:/user/mt3443/BDAD/ProjectData/kills.csv
+
+After cleaning, the dataset is stored in :
+
+hdfs:/user/mt3443/BDAD/ProjectData/CleanedData/agg.csv
+hdfs:/user/mt3443/BDAD/ProjectData/CleanedData/kills.csv
+
+
+THE ANALYTIC
+
+The analytic consists of 4 pieces of code :
+
+ETL.scala - Cleaning and profiling of the initial datasets (not provided, since already graded)
+Subsetting.scala - Divides the data into subsets for easier usage in the analytic
+HeatMapGen.scala - Generates the cluster centers and cluster weights for both game maps, saves the files to the local system (rather than HDFS)
+LoadOutGen.scala - Generates a ranking of weapons for both game maps during different stages of the game, saves the files to HDFS
+
+The HEAT MAP GENERATOR
+
+The heat map generator takes in the cluster center data and produces a heat map with intensities based on the number of points in each cluster
+(ie, the cluster weights). The script does this for each stage of the game (Early, Mid, Late).
+
+HOW TO RUN
+
+Please run the code in the following order :
+
+1. Subsetting.scala
+2. HeatMapGen.scala
+3. LoadOutGen.scala
+4. MapCode.py
+
+To run Subsetting.scala :
+
+spark-shell --packages com.databricks:spark-csv_2.10:1.5.0 -i Subsetting.scala
+
+Please note that the output of these files must be renamed to be compatible with HeatMapGen.scala and LoadOutGen.scala,
+since the original output is in the form of a file titled part-00000.
+I've renamed them all already, and they are stored in the following directories on HDFS:
+
+hdfs:/user/mt3443/BDAD/ProjectData/DerivedData/EarlyGame/Erangel.csv
+hdfs:/user/mt3443/BDAD/ProjectData/DerivedData/EarlyGame/Miramar.csv
+hdfs:/user/mt3443/BDAD/ProjectData/DerivedData/MidGame/Erangel.csv
+hdfs:/user/mt3443/BDAD/ProjectData/DerivedData/MidGame/Miramar.csv
+hdfs:/user/mt3443/BDAD/ProjectData/DerivedData/LateGame/Erangel.csv
+hdfs:/user/mt3443/BDAD/ProjectData/DerivedData/LateGame/Miramar.csv
+
+To run HeatMapGen.scala :
+
+spark-shell --packages com.databricks:spark-csv_2.10:1.5.0 -i HeatMapGen.scala
+
+The output files are stored in the current directory on the local system (on Dumbo) in the following form:
+
+erangelClusterCentersEarly.txt
+erangelClusterCentersLate.txt
+erangelClusterCentersMid.txt
+erangelClusterWeightsEarly.txt
+erangelClusterWeightsLate.txt
+erangelClusterWeightsMid.txt
+miramarClusterCentersEarly.txt
+miramarClusterCentersLate.txt
+miramarClusterCentersMid.txt
+miramarClusterWeightsEarly.txt
+miramarClusterWeightsLate.txt
+miramarClusterWeightsMid.txt
+
+To run LoadOutGen.scala :
+
+spark-shell --packages com.databricks:spark-csv_2.10:1.5.0 -i LoadOutGen.scala
+
+Please note that the output of these files must be renamed to be compatible with MapCode.py,
+since the original output is in the form of a file titled part-00000.
+I've renamed them all already, and they are stored in the following directories on HDFS:
+
+hdfs:/user/mt3443/BDAD/ProjectData/Results/Loadouts/EarlyGameErangel.csv
+hdfs:/user/mt3443/BDAD/ProjectData/Results/Loadouts/LateGameErangel.csv
+hdfs:/user/mt3443/BDAD/ProjectData/Results/Loadouts/LateGameMiramar.csv
+hdfs:/user/mt3443/BDAD/ProjectData/Results/Loadouts/MidGameErangel.csv
+hdfs:/user/mt3443/BDAD/ProjectData/Results/Loadouts/MidGameMiramar.csv
+
+To run MapCode.py :
+
+python MapCode.py
+
+The libraries I needed to generate MapCode.py weren't installed on Dumbo, and I could
+not install them without sudo privileges, so I run it on my local system. I've included a
+requirements.txt file to install all requirements for my code to run. You can install all
+requirements by running :
+
+pip install -r requirements.txt
+
+For MapCode.py to run, you need to create a Results folder with
+the following structure :
+
+Results
+|____Loadouts
+| |____EarlyGameMiramar.csv
+| |____MidGameMiramar.csv
+| |____LateGameErangel.csv
+| |____MidGameErangel.csv
+| |____EarlyGameErangel.csv
+| |____LateGameMiramar.csv
+|____miramarClusterWeightsEarly.txt
+|____erangelClusterCentersLate.txt
+|____miramarClusterWeightsLate.txt
+|____erangelClusterCentersMid.txt
+|____miramarClusterCentersLate.txt
+|____erangelClusterWeightsLate.txt
+|____miramarClusterCentersMid.txt
+|____erangelClusterWeightsEarly.txt
+|____miramarClusterWeightsMid.txt
+|____erangelClusterCentersEarly.txt
+|____miramarClusterCentersEarly.txt
+|____erangelClusterWeightsMid.txt
+
+I've included this Results folder in the archive so that you don't have to do it manually.
+I've also included the Images folder which contains the game map upon which the heat maps
+will be superimposed.
